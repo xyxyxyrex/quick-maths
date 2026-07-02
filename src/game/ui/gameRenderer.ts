@@ -788,15 +788,32 @@ export class GameRenderer {
       }
     }
 
-    // Danger cap when topped up
-    if (board.garbage >= GARBAGE_CAPACITY) {
-      const pulse = 0.5 + 0.5 * Math.sin(v.dangerPulse * 1.6);
-      g.roundRect(WELL_X - 4, WELL_TOP - 6, WELL_W + 8, WELL_BOTTOM - WELL_TOP + 12, 8)
-        .stroke({ color: COL.danger, width: 2.5, alpha: 0.4 + 0.6 * pulse });
-    }
-
     // --- Incoming garbage ghost cells ---
     const incoming = board.getIncomingTotal();
+
+    // Dynamic warning outline around active incoming garbage stacks
+    if (incoming > 0) {
+      const isDangerous = (board.garbage + incoming) >= 7;
+      const pulse = 0.5 + 0.5 * Math.sin(v.dangerPulse * 1.6);
+      const outlineStacks = Math.min(GARBAGE_CAPACITY - board.garbage, incoming);
+
+      if (outlineStacks > 0) {
+        const stackHeight = outlineStacks * ROW_H + (outlineStacks - 1) * ROW_GAP;
+        const ghostBottomY = WELL_BOTTOM - board.garbage * ROW_H - board.garbage * ROW_GAP;
+
+        const outlineX = WELL_X - 4;
+        const outlineY = ghostBottomY - stackHeight - 4;
+        const outlineW = WELL_W + 8;
+        const outlineH = stackHeight + 8;
+
+        const strokeColor = isDangerous ? COL.danger : COL.warn;
+        const strokeAlpha = (isDangerous ? (0.4 + 0.6 * pulse) : (0.2 + 0.3 * pulse)) * Math.max(v.incomingFlash, 0.5);
+
+        g.roundRect(outlineX, outlineY, outlineW, outlineH, 6)
+          .stroke({ color: strokeColor, width: 2, alpha: strokeAlpha });
+      }
+    }
+
     if (incoming > 0) {
       const flash = 0.55 + 0.45 * Math.sin(this.time / 90);
       let stacked = board.garbage;

@@ -73,8 +73,16 @@ export class GameEngine {
 
     // Recreate boards
     this.playerBoard = new BoardState("player", this.seed);
-    this.playerBoard.reset(this.zenDifficulty);
     this.opponentBoard = new BoardState("opponent", this.seed);
+    if (this.zenMode) {
+      this.playerBoard.reset(this.zenDifficulty);
+      this.opponentBoard.reset(undefined);
+    } else {
+      // In versus PvP, questions generated match the chosen AI difficulty level!
+      const targetDiff = this.aiDifficulty as any as ZenQuestionDifficulty;
+      this.playerBoard.reset(targetDiff);
+      this.opponentBoard.reset(targetDiff);
+    }
 
     // Recreate controllers
     if (this.playerController) this.playerController.destroy();

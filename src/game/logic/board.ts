@@ -138,7 +138,11 @@ export class BoardState {
 
       // Complete a progress cycle: launch an attack.
       if (this.progress >= PROGRESS_CAPACITY) {
-        let rawAttack = Math.max(0, PROGRESS_CAPACITY - this.garbage);
+        let rawAttack = PROGRESS_CAPACITY;
+        
+        // Clear own landed garbage by the completed cycle capacity
+        this.garbage = Math.max(0, this.garbage - PROGRESS_CAPACITY);
+        
         this.progress = 0;
         this.soundManager.playAttack();
         this.emit({ type: "progressCycle" });
@@ -178,9 +182,6 @@ export class BoardState {
     return { correct: isCorrect, attackPower };
   }
 
-  /** Early send: spend current progress to disrupt the opponent. Requires at
-   *  least EARLY_SEND_MIN progress. Returns the amount sent (caller applies it
-   *  to the opponent via receiveDisrupt). */
   public earlySend(): number {
     if (this.lost || this.progress < EARLY_SEND_MIN || this.disruptCooldown > 0) return 0;
 
@@ -189,7 +190,7 @@ export class BoardState {
     this.disruptCooldown = DISRUPT_COOLDOWN_MS;
 
     this.soundManager.playAttack();
-    this.emit({ type: "earlySend", sent, garbageAfter: 0 });
+    this.emit({ type: "earlySend", sent, garbageAfter: this.garbage });
 
     return sent;
   }
@@ -250,9 +251,8 @@ export class BoardState {
         this.soundManager.playGarbageImpact();
         this.emit({ type: "garbageApplied", amount: applied, total: this.garbage });
 
-        // Top-out only on genuine overflow past the board's capacity. Reaching
-        // exactly the capacity fills the board but is survivable.
-        if (this.garbage > GARBAGE_CAPACITY) {
+        // Top-out immediately when garbage reaches or exceeds board capacity.
+        if (this.garbage >= GARBAGE_CAPACITY) {
           this.garbage = GARBAGE_CAPACITY;
           this.lost = true;
           this.emit({ type: "topout" });
